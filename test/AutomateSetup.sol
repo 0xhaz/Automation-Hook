@@ -36,7 +36,7 @@ contract AutomateSetup is Test, Deployers {
     bytes32 private constant _CLAIM_BOUNTY_TYPEHASH = keccak256("ClaimBounty(address receiver)");
 
     // Native tokens are represented by address(0)
-    Currency currency = Currency.wrap(address(0));
+    Currency ethCurrency = Currency.wrap(address(0));
     MockERC20 token0;
     MockERC20 token1;
 
@@ -161,10 +161,10 @@ contract AutomateSetup is Test, Deployers {
         bob = vm.addr(userPrivateKeys[1]);
         cat = vm.addr(userPrivateKeys[2]);
         derek = vm.addr(userPrivateKeys[3]);
-        vm.label(alice, "Alice");
-        vm.label(bob, "Bob");
-        vm.label(cat, "Cat");
-        vm.label(derek, "Derek");
+        vm.label(alice, "alice");
+        vm.label(bob, "bob");
+        vm.label(cat, "cat");
+        vm.label(derek, "derek");
 
         // User Ids
         userIds[alice] = 0;
@@ -348,7 +348,7 @@ contract AutomateSetup is Test, Deployers {
     function approveNecessarySpenders(address user, uint256 amount) public userPrank(user) {
         address[2] memory toApprove = [address(swapRouter), address(automate)];
 
-        for (uint256 i; i < toApprove.length; i++) {
+        for (uint256 i = 0; i < toApprove.length; i++) {
             token0.approve(toApprove[i], amount);
             token1.approve(toApprove[i], amount);
         }
@@ -379,7 +379,7 @@ contract AutomateSetup is Test, Deployers {
         return keccak256(abi.encode(_CLAIM_BOUNTY_TYPEHASH, claimBounty.receiver));
     }
 
-    function normallize(uint256 amount) internal pure returns (uint256) {
+    function normalize(uint256 amount) internal pure returns (uint256) {
         return amount / 10 ** 18;
     }
 }

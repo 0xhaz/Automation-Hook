@@ -17,7 +17,7 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
 
-    bytes32 private constant _CLAIM_BOUNTY_TYPEHASH = keccak256("ClaimBounty(address recevier)");
+    bytes32 private constant _CLAIM_BOUNTY_TYPEHASH = keccak256("ClaimBounty(address receiver)");
     uint256 private constant _BASIS_POINTS = 10_000;
     uint256 private constant _MIN_BOUNTY = 0.01 ether;
     uint256 private constant _FULLY_DECAYED_IN_MINUTES = 100;
@@ -40,7 +40,7 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
 
     constructor(uint16 protocolFeeBP, uint16 bountyDecayBPPerMinute, address feeReceiver)
         Ownable(msg.sender)
-        AutoMateEIP712("Automate", "1")
+        AutoMateEIP712("AutoMate", "1")
     {
         _protocolFeeBP = protocolFeeBP;
         _bountyDecayBPPerMinute = bountyDecayBPPerMinute;
@@ -62,17 +62,9 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
         _setupForTask(taskType, tokenAddress, jitBounty, callAmount);
 
         taskId = _taskIdCounter++; // start from 0
-        Task memory task = Task({
-            id: taskId,
-            subscriber: msg.sender,
-            jitBounty: jitBounty,
-            taskType: taskType,
-            tokenAddress: tokenAddress,
-            callingAddress: callingAddress,
-            scheduleAt: scheduleAt,
-            callAmount: callAmount,
-            callData: callData
-        });
+        Task memory task = Task(
+            taskId, msg.sender, jitBounty, taskType, tokenAddress, callingAddress, scheduleAt, callAmount, callData
+        );
         _tasks.push(task);
 
         emit TaskSubscribed(msg.sender, taskId);
@@ -96,6 +88,20 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
         _distributeBountyBasedOnExecutionTime(task, claimBounty, sig);
 
         emit TaskExecuted(claimBounty.receiver, task.id);
+    }
+
+    function redeemFromExpiredTask(uint256 taskIdx) external {
+        if (taskIdx >= _tasks.length) revert InvalidTaskInput();
+
+        Task memory task = _tasks[taskIdx];
+        if (block.timestamp <= task.scheduleAt) revert TaskNotExpiredYet();
+        if (msg.sender != task.subscriber) revert OnlyFromTaskSubscriber();
+
+        _tasks[taskIdx] = _tasks[_tasks.length - 1];
+        _tasks.pop();
+
+        // task still accessible after pop
+        _redeemFundBasedOnTaskType(task);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -122,7 +128,7 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
 
     /// @dev Setup all the prerequisites in order for the scheduled task to execute successfully
     function _setupForTask(TaskType taskType, address tokenAddress, uint256 jitBounty, uint256 callAmount) internal {
-        uint256 protocolFee = (jitBounty * _protocolFeeBP) / _BASIS_POINTS;
+        uint256 protocolFee = jitBounty * _protocolFeeBP / _BASIS_POINTS;
         uint256 minRequiredAmount = jitBounty + protocolFee;
 
         // transfer the required funds to this contract
@@ -218,7 +224,7 @@ contract Automate is Ownable, AutoMateEIP712, IAutoMate {
     /*//////////////////////////////////////////////////////////////
                                ADMIN
     //////////////////////////////////////////////////////////////*/
-    function setReceiver(address feeReceiver) external onlyOwner {
+    function setFeeReceiver(address feeReceiver) external onlyOwner {
         _feeReceiver = feeReceiver;
     }
 

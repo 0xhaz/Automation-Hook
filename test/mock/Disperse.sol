@@ -29,7 +29,7 @@ contract Disperse {
     }
 
     function disperseTokenSimple(address token, address[] calldata recipients, uint256[] calldata value) external {
-        for (uint256 i; i < recipients.length; i++) {
+        for (uint256 i = 0; i < recipients.length; i++) {
             require(IERC20(token).transferFrom(msg.sender, recipients[i], value[i]));
         }
     }
