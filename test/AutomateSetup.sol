@@ -379,7 +379,7 @@ contract AutomateSetup is Test, Deployers {
         return keccak256(abi.encode(_CLAIM_BOUNTY_TYPEHASH, claimBounty.receiver));
     }
 
-    function normalize(uint256 amount) internal pure returns (uint256) {
+    function _normalize(uint256 amount) internal pure returns (uint256) {
         return amount / 10 ** 18;
     }
 }
